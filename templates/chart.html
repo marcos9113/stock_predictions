@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Prediction</title>
+
+    <!-- Include Bootstrap CSS (you may need to adjust the path) -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Include Chart.js (you may need to adjust the path) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+
+            <div class="row">
+                <div class="col">
+                    <h2 style="display: inline; margin-right: 10px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/IBM_logo.svg/800px-IBM_logo.svg.png" style="height: 1em; vertical-align: middle;">
+                Stock - Intraday Pricing
+            </h2>
+                </div>
+                <div class="col">
+                    <h4 id="actTime" class="badge badge-primary">Placeholder</h4>
+                    <h6 id="actPrice">Placeholder</h6>
+                </div>
+
+                <div class="col">
+                    <h4 id="predTime" class="badge badge-warning">Placeholder</h4>
+                    <h6 id="predPrice">Placeholder</h6>
+                </div>
+                <div class="col">
+                    <h4 id="perGapType" class="badge badge-danger">% in previous prices</h4>
+                    <h6 id="perGapChange">Placeholder</h6>
+                </div>
+
+
+            </div>
+            <br>
+            <canvas id="lineChart" width="800" style="height:300px;"></canvas><!-- Fixed height here -->
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    var myLineChart; // Declare a variable to store the Chart instance
+
+    function fetchDataAndRenderChart() {
+        fetch('/stock_chart_api')
+            .then(response => response.json())
+            .then(data => {
+                // Destroy the previous Chart instance if it exists
+                if (myLineChart) {
+                    myLineChart.destroy();
+                }
+                console.log(data);
+                var actualData = data.actualData;
+                var predictedData = data.predictedData;
+                var actualDateTime = data.actualDateTime;
+                var predPrice = data.nextMinuteData;
+                var predTime = data.targetTime;
+                document.getElementById("predPrice").textContent = predPrice;
+                document.getElementById("predTime").textContent = predTime;
+                document.getElementById("actPrice").textContent = actualData[0];
+                document.getElementById("actTime").textContent = actualDateTime[0];
+                document.getElementById("perGapChange").textContent = ((actualData[0]-actualData[1])/actualData[1])*100;
+                console.log(actualData[0]+" "+actualData[1]);
+
+                // Sample data for the chart (you can replace with your actual data)
+                var chartData = {
+                    labels: actualDateTime,
+                    datasets: [
+                        {
+                            label: "Actual",
+                            data: actualData,
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            fill: false,
+                        },
+                        {
+                            label: "Predicted",
+                            data: predictedData,
+                            borderColor: "rgba(255, 99, 132, 1)",
+                            fill: false,
+                        },
+                    ],
+                };
+
+                // Chart configuration
+                var options = {
+                    scales: {
+                        x: {
+                            beginAtZero: false,
+                        },
+                        y: {
+                            beginAtZero: false,
+                        },
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                // Customize the tooltip to show both "Actual" and "Predicted" values
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                };
+
+                var ctx = document.getElementById("lineChart");
+
+
+                // Create the new chart
+                myLineChart = new Chart(ctx, {
+                    type: "line",
+                    data: chartData,
+                    options: options,
+                });
+            });
+    }
+
+    // Call the function immediately to fetch and render data
+    fetchDataAndRenderChart();
+
+    // Update data every 20 seconds
+    setInterval(fetchDataAndRenderChart, 20000); // 20,000 milliseconds = 20 seconds
+</script>
+
+</body>
+</html>
